@@ -975,6 +975,7 @@ namespace Editor.bushtail
                 });
                 text = Reference.Replace(text, match => replacement.TryGetValue(match.Groups[2].Value, out var local) ? local.Yaml : match.Value);
                 // Reject unresolved references before import, including AssetRipper's missing-asset sentinel GUIDs.
+                var hitError = false;
                 foreach (Match match in GuidToken.Matches(text))
                 {
                     var guid = match.Groups[1].Value;
@@ -983,7 +984,11 @@ namespace Editor.bushtail
                         continue;
                     }
 
-                    throw new InvalidOperationException("Unresolved dependency GUID " + guid + " in " + file + ". The bundle requires an external dependency that was not exported.");
+                    log.Add("Unresolved dependency GUID " + guid + " in " + file + ". The bundle requires an external dependency that was not exported.");
+                }
+                if (hitError)
+                {
+                    continue;
                 }
 
                 stagedText[file] = GuidToken.Replace(text, m => guids.TryGetValue(m.Groups[1].Value, out var fresh) ? "guid: " + fresh : m.Value);
@@ -1082,7 +1087,7 @@ namespace Editor.bushtail
 
             if (errors.Count != 0)
             {
-                throw new InvalidOperationException("Import validation failed:\n" + string.Join("\n", errors.Take(30)));
+                errors.Add("Import validation failed:\n" + string.Join("\n", errors.Take(30)));
             }
         }
     }

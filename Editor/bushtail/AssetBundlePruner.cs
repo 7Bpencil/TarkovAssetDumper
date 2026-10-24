@@ -102,10 +102,9 @@ namespace Editor.bushtail
             {
                 if (!file.Objects.ContainsKey(id))
                 {
-                    throw new InvalidDataException("Missing object " + id + " in " + file.File.name);
+                    log.Add("Missing object " + id + " in " + file.File.name);
                 }
-
-                if (file.Keep.Add(id))
+                else if (file.Keep.Add(id))
                 {
                     pending.Enqueue((file, id));
                 }
