@@ -29,6 +29,7 @@ namespace Editor.bushtail
         private string ripperPath = "";
         [SerializeField]
         private string dependencyFolder = "";
+        private string dependencyFolder2 = "";
         [SerializeField]
         private bool ignoreDependencies;
         [SerializeField]
@@ -140,6 +141,18 @@ namespace Editor.bushtail
                             if (!string.IsNullOrEmpty(selected))
                             {
                                 dependencyFolder = selected;
+                            }
+                        }
+                    }
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        dependencyFolder2 = EditorGUILayout.TextField(new GUIContent("Dependency search folder 2", "Second folder to check."), dependencyFolder2);
+                        if (GUILayout.Button("Browse", GUILayout.Width(65)))
+                        {
+                            var selected = EditorUtility.OpenFolderPanel("Dependency search folder", PickerDirectory(dependencyFolder2), "");
+                            if (!string.IsNullOrEmpty(selected))
+                            {
+                                dependencyFolder2 = selected;
                             }
                         }
                     }
@@ -342,7 +355,7 @@ namespace Editor.bushtail
                     {
                         status = message;
                         Repaint();
-                    }, dependencyFolder, useDependencyImpostors, ignoreDependencies, singleBundleLabels);
+                    }, dependencyFolder, dependencyFolder2, useDependencyImpostors, ignoreDependencies, singleBundleLabels);
                     var successes = results.Where(r => r.Succeeded).ToArray();
                     status = $"Finished: {successes.Length} exported and validated, {results.Count - successes.Length} failed. See the report below.";
                     Selection.objects = successes.Select(r => AssetDatabase.LoadAssetAtPath<DefaultAsset>(r.Output)).Where(a => a).Cast<Object>().ToArray();
@@ -375,7 +388,7 @@ namespace Editor.bushtail
             }
         }
 
-        public static async Task<string> DumpAsync(string input, string executable, string parent, bool splitPrefabs, string? fallback, List<string> log, Action<string>? progress = null, string? dependencySearchFolder = null, bool useDependencyImpostors = true, bool ignoreDependencies = false, bool singleBundleLabels = false)
+        public static async Task<string> DumpAsync(string input, string executable, string parent, bool splitPrefabs, string? fallback, List<string> log, Action<string>? progress = null, string? dependencySearchFolder = null, string? dependencySearchFolder2 = null, bool useDependencyImpostors = true, bool ignoreDependencies = false, bool singleBundleLabels = false)
         {
             if (singleBundleLabels) { useDependencyImpostors = false; }
 
@@ -418,7 +431,7 @@ namespace Editor.bushtail
             progress?.Invoke("Finding bundle dependencies");
             var dependencyLog = new List<string>();
             var dependencyProgress = new Progress<string>(message => progress?.Invoke(message));
-            var bundles = await Task.Run(() => AssetBundleDependencies.Resolve(input, dependencySearchFolder, dependencyLog, dependencyProgress, Path.Combine(project, "Library", "BundleDumper", "bundle-index.bin"), Path.Combine(project, "AssetBundles"), !ignoreDependencies));
+            var bundles = await Task.Run(() => AssetBundleDependencies.Resolve(input, dependencySearchFolder, dependencySearchFolder2, dependencyLog, dependencyProgress, Path.Combine(project, "Library", "BundleDumper", "bundle-index.bin"), Path.Combine(project, "AssetBundles"), !ignoreDependencies));
             var originalSources = bundles.Select(b => b.Path).ToArray();
             var previousRoots = AssetDatabase.FindAssets("l:BundleDumperExport").Select(AssetDatabase.GUIDToAssetPath).ToArray();
             var sdkShaders = new HashSet<string>(AssetDatabase.FindAssets("t:Shader").Select(AssetDatabase.GUIDToAssetPath).Where(p => !previousRoots.Any(root => p.StartsWith(root + "/", StringComparison.Ordinal))).Select(AssetDatabase.LoadAssetAtPath<Shader>).Where(s => s).GroupBy(s => s.name).Where(g => g.Count() == 1).Select(g => g.Key), StringComparer.Ordinal);

@@ -128,7 +128,7 @@ namespace Editor.bushtail
             return !Directory.Exists(folder) ? throw new DirectoryNotFoundException("SptRoot resolves to an installation without a bundle folder: " + folder) : folder;
         }
 
-        public static List<BundleInfo> Resolve(string input, string? extraFolder, List<string> log, IProgress<string>? progress = null, string? cachePath = null, string? buildOutputFolder = null, bool includeDependencies = true)
+        public static List<BundleInfo> Resolve(string input, string? extraFolder, string? extraFolder2, List<string> log, IProgress<string>? progress = null, string? cachePath = null, string? buildOutputFolder = null, bool includeDependencies = true)
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();
             input = Path.GetFullPath(input);
@@ -225,7 +225,8 @@ namespace Editor.bushtail
             var requestedRoots = new[]
             {
                 Path.GetDirectoryName(input)!,
-                extraFolder
+                extraFolder,
+                extraFolder2,
             }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => Path.GetFullPath(p!)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             // A parent traversal already includes its child folders.
             var roots = requestedRoots.Where(root => !requestedRoots.Any(other => !root.Equals(other, StringComparison.OrdinalIgnoreCase) && root.StartsWith(other.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))).ToArray();
@@ -376,7 +377,7 @@ namespace Editor.bushtail
 
                     if (matches.Count != 1)
                     {
-                        throw new InvalidOperationException("Multiple bundles provide '" + dependency + "': " + string.Join(", ", matches.Select(b => b.Path)) + ". Use a search folder containing one copy.");
+                        log.Add("Multiple bundles provide '" + dependency + "': " + string.Join(", ", matches.Select(b => b.Path)) + ". Use a search folder containing one copy.");
                     }
 
                     if (!result.Any(b => b.Path.Equals(matches[0].Path, StringComparison.OrdinalIgnoreCase)))
