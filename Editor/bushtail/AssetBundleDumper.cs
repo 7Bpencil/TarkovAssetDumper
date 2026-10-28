@@ -29,6 +29,7 @@ namespace Editor.bushtail
         private string ripperPath = "";
         [SerializeField]
         private string dependencyFolder = "";
+        [SerializeField]
         private string dependencyFolder2 = "";
         [SerializeField]
         private bool ignoreDependencies;
@@ -103,6 +104,22 @@ namespace Editor.bushtail
                     ripperPath = sibling;
                 }
             }
+
+            if (string.IsNullOrEmpty(dependencyFolder))
+            {
+                dependencyFolder = EditorPrefs.GetString("bushtail.DependencyFolder", dependencyFolder);
+            }
+
+            if (string.IsNullOrEmpty(dependencyFolder2))
+            {
+                dependencyFolder2 = EditorPrefs.GetString("bushtail.DependencyFolder2", dependencyFolder2);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            EditorPrefs.SetString("bushtail.DependencyFolder", dependencyFolder);
+            EditorPrefs.SetString("bushtail.DependencyFolder2", dependencyFolder2);
         }
 
         private static string EnvironmentRipperPath()
@@ -395,7 +412,7 @@ namespace Editor.bushtail
             input = NormalizeInputPath(input);
             executable = NormalizeInputPath(executable);
             dependencySearchFolder = NormalizeInputPath(dependencySearchFolder);
-            
+
             if (string.IsNullOrWhiteSpace(executable))
             {
                 executable = EnvironmentRipperPath();
@@ -508,7 +525,7 @@ namespace Editor.bushtail
                     itemRoot = destination;
                     dependencyRoot = itemRoot + "/Dependencies";
                     var dependencySuffix = 1;
-                        
+
                     while (Directory.Exists(FileSystemPath(Path.Combine(project, dependencyRoot))) || File.Exists(FileSystemPath(Path.Combine(project, dependencyRoot))) || File.Exists(FileSystemPath(Path.Combine(project, dependencyRoot) + ".meta")))
                     {
                         dependencyRoot = itemRoot + "/Dependencies " + dependencySuffix++;
@@ -601,10 +618,10 @@ namespace Editor.bushtail
             }
 
             var needed = new HashSet<string>(AssetDatabase.GetDependencies(source, true), StringComparer.Ordinal);
-            var unused = AssetDatabase.GetAllAssetPaths().Where(p => !AssetDatabase.IsValidFolder(p) 
-                                                                     && dependencyRoots.Any(d => p.StartsWith(d + "/", StringComparison.Ordinal)) 
+            var unused = AssetDatabase.GetAllAssetPaths().Where(p => !AssetDatabase.IsValidFolder(p)
+                                                                     && dependencyRoots.Any(d => p.StartsWith(d + "/", StringComparison.Ordinal))
                                                                      && !needed.Contains(p)).ToArray();
-            
+
             foreach (var path in unused)
             {
                 if (!AssetDatabase.DeleteAsset(path)) { throw new IOException("Could not remove unused dependency asset: " + path); }
@@ -696,7 +713,7 @@ namespace Editor.bushtail
             var payloadRoot = Path.Combine(run, "Payloads");
             Directory.CreateDirectory(payloadRoot);
             var payloads = Enumerable.Range(0, bundles.Count).Select(i => Path.Combine(payloadRoot, i.ToString())).ToList();
-            
+
             foreach (var i in Enumerable.Range(0, sources.Length).OrderByDescending(i => sources[i].Length))
             {
                 Directory.Move(FileSystemPath(sources[i]), FileSystemPath(payloads[i]));
